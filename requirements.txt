@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+python-dotenv
+requests
+pydantic>=2
+SQLAlchemy>=2
+langchain>=0.3
+langchain-openai>=0.2
+langchain-community>=0.3
+langgraph>=0.2
+tenacity
+httpx
+# Optional: linting/dev
+ruff
