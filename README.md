@@ -16,3 +16,16 @@ A step-by-step tutorial project that builds a LangGraph-powered agent with:
    - `ollama pull llama3`
 5. Copy `.env.example` to `.env` and add your API keys.
 6. Run the server (later): `uvicorn app.main:app --reload` (we’ll wire routes in later steps)
+
+## Database & Memory
+
+We use SQLite + SQLAlchemy for local development memory storage.
+
+- Tables:
+  - **users** (logical app user)
+  - **conversations** (threads per user)
+  - **messages** (append-only LangChain-compatible JSON)
+
+### Initialize
+On app startup the DB is auto-created. Ensure `.env` has:
+
