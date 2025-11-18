@@ -55,14 +55,28 @@ def get_weather(city: str, units: str = "metric") -> dict:
 def get_stock_quote(symbol: str) -> dict:
     """
     Get latest stock quote using Alpha Vantage GLOBAL_QUOTE.
+
     Args:
         symbol: e.g., "AAPL"
     Returns:
-        dict with price, change, percent_change, previous_close
+        dict with:
+          - symbol
+          - price
+          - previous_close
+          - change
+          - percent_change (string, e.g. '0.56%')
+          - percent_change_float (float, e.g. 0.56)
+          - source
+        or a dict with an "error" field.
     """
     api_key = settings.alphavantage_api_key
     if not api_key:
-        return {"error": "Missing ALPHAVANTAGE_API_KEY in environment."}
+        return {
+            "error": {
+                "code": "missing_api_key",
+                "message": "Missing ALPHAVANTAGE_API_KEY in environment."
+            }
+        }
 
     try:
         data = _http_get_json(
@@ -71,7 +85,13 @@ def get_stock_quote(symbol: str) -> dict:
         )
         quote = data.get("Global Quote", {})
         if not quote:
-            return {"error": f"No quote found for {symbol}. Response: {data}"}
+            return {
+                "error": {
+                    "code": "no_quote",
+                    "message": f"No quote found for symbol '{symbol}'.",
+                    "raw_response": data,
+                }
+            }
 
         def to_float(x: Optional[str]) -> Optional[float]:
             try:
@@ -82,29 +102,57 @@ def get_stock_quote(symbol: str) -> dict:
         price = to_float(quote.get("05. price"))
         prev_close = to_float(quote.get("08. previous close"))
         change = to_float(quote.get("09. change"))
-        pct = quote.get("10. change percent")  # e.g., "0.56%"
+        pct_str = quote.get("10. change percent")  # e.g. "0.56%"
+
+        pct_float: Optional[float] = None
+        if isinstance(pct_str, str) and pct_str.endswith("%"):
+            try:
+                pct_float = float(pct_str.rstrip("%"))
+            except Exception:
+                pct_float = None
 
         return {
             "symbol": symbol.upper(),
             "price": price,
             "previous_close": prev_close,
             "change": change,
-            "percent_change": pct,
+            "percent_change": pct_str,
+            "percent_change_float": pct_float,
             "source": "alpha_vantage",
         }
     except Exception as e:
-        return {"error": f"stock_fetch_failed: {e}"}
+        return {
+            "error": {
+                "code": "stock_fetch_failed",
+                "message": f"Failed to fetch stock data for symbol '{symbol}': {e!r}",
+            }
+        }
+
 
 # ---------- “Advisor” prompt helper ----------
 def stock_risk_hint() -> str:
     """
-    A small helper string the LLM can use when giving advice.
-    We keep advice simple & transparent; the LLM will combine with real quote data.
+    Hint text used by the LLM when giving stock suggestions.
+
+    Rubric (based on intraday % change vs previous close):
+      - Low risk:   price is stable or slightly down (between -1% and +1%)
+      - Medium risk: moderate move (between -3% and -1% or between +1% and +3%)
+      - High risk:  large move (less than -3% or greater than +3%)
+
+    Guidance:
+      - Use the tool output fields: price, previous_close, change, percent_change.
+      - Explain briefly why you chose the risk level.
+      - Always remind the user this is NOT financial advice.
     """
     return (
-        "Provide an informal buy/sell/hold suggestion categorized as Low/Medium/High risk. "
-        "Base it on intraday change vs previous close, and remind users this is not financial advice."
+        "Use this rubric for risk levels, based on intraday percent change vs previous close:\n"
+        "- Low risk: price change between -1% and +1% (stable or slightly down/up)\n"
+        "- Medium risk: price change between -3% and -1% OR between +1% and +3%\n"
+        "- High risk: price change < -3% OR > +3%\n\n"
+        "Base your suggestion on the tool fields (price, previous_close, change, percent_change). "
+        "Explain your reasoning briefly and clearly, and always remind the user it is not financial advice."
     )
+
 
 # Export list of tools for graph binding
 TOOLS = [get_weather, get_stock_quote]

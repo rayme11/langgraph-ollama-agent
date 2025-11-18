@@ -12,3 +12,6 @@ tenacity
 httpx
 # Optional: linting/dev
 ruff
+pytest
+pytest-mock
+
