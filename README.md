@@ -1,19 +1,23 @@
 
+---
+
 ````md
 # 🧠 LangGraph + Ollama Agent — Complete End-to-End Tutorial
 
-This repository is a **complete, practical guide** to building an intelligent agent using:
+This repository is a **complete, practical guide** to building a production-ready, tool-using agent powered by:
 
-- 🧩 **LangGraph** for tool-calling agent reasoning  
-- ⚙️ **LangChain Tools** wrapping Python + HTTP APIs  
-- 🤖 **Ollama (local LLMs)** like `llama3`, `mistral`  
+- 🧩 **LangGraph** for structured agent reasoning  
+- ⚙️ **LangChain Tools** wrapping Python & HTTP APIs  
+- 🤖 **Ollama (local open-source LLMs)** — Llama3, Mistral, Phi3, etc.  
 - ☁️ **Optional OpenAI fallback** (`gpt-4o-mini`)  
 - 💾 **SQLite + SQLAlchemy** for persistent memory  
-- ⚡ **FastAPI** backend  
-- 🌦️ **Weather API** (OpenWeatherMap)  
-- 📈 **Stock API** (AlphaVantage)  
-- 🧪 **Pytest-based test suite**  
-- 🔍 **Smoke test** to validate the full stack  
+- ⚡ **FastAPI** exposing `/api/chat`  
+- 🌦️ **OpenWeatherMap** for real weather  
+- 📈 **AlphaVantage** for real stock data  
+- 🧪 **Pytest test suite**  
+- 🔍 **Smoke test** to validate end-to-end behavior  
+
+Everything is designed to be easy to extend and safe for local development.
 
 ---
 
@@ -23,10 +27,11 @@ This repository is a **complete, practical guide** to building an intelligent ag
 2. Step 2 — Database & Memory  
 3. Step 3 — LangGraph Agent & Tool Integration  
 4. Step 4 — Risk Rubric, Error Handling & Tests  
-5. Troubleshooting  
-6. Folder Layout  
-7. Quickstart Summary  
-8. License  
+5. Step 5 — FastAPI `/api/chat` Endpoint  
+6. Troubleshooting  
+7. Folder Layout  
+8. Quickstart Summary  
+9. License  
 
 ---
 
@@ -34,11 +39,13 @@ This repository is a **complete, practical guide** to building an intelligent ag
 
 ## 1.1 Why this step?
 
-We establish a clean foundation:
-- virtual environment  
-- dependency management  
-- secure secret handling  
-- validating Ollama and Python runtime  
+We create a safe, reproducible environment:
+
+- Python virtual environment  
+- Dependency management  
+- `.env` for API keys  
+- Validate Ollama + Python installation  
+- Proper project structure  
 
 ---
 
@@ -46,14 +53,15 @@ We establish a clean foundation:
 
 | Requirement | Purpose |
 |------------|---------|
-| Python 3.11+ | Required for LangGraph & Pydantic v2 |
-| VS Code | Recommended environment |
-| Ollama | Local LLM runtime |
-| API keys | OpenWeatherMap + AlphaVantage |
+| Python 3.11+ | LangGraph & Pydantic v2 support |
+| VS Code | Recommended IDE |
+| Ollama | Open-source local LLM runtime |
+| API Keys | OpenWeatherMap + AlphaVantage |
 
-Sign-up pages:  
-🌦️ https://openweathermap.org/api  
-📈 https://www.alphavantage.co/support/#api-key  
+Get API keys:
+
+- 🌦️ https://openweathermap.org/api  
+- 📈 https://www.alphavantage.co/support/#api-key  
 
 ---
 
@@ -65,16 +73,14 @@ cd langgraph-ollama-agent
 
 python3 -m venv .venv
 source .venv/bin/activate        # macOS/Linux
-.venv\Scripts\Activate.ps1       # Windows
+.venv\Scripts\Activate.ps1       # Windows PowerShell
 ````
-
-You should see `(.venv)` in your shell.
 
 ---
 
 ## 1.4 Install dependencies
 
-Create `requirements.txt`
+`requirements.txt`:
 
 ```txt
 fastapi
@@ -94,7 +100,7 @@ pytest
 pytest-mock
 ```
 
-Install:
+Install all:
 
 ```bash
 pip install -r requirements.txt
@@ -113,7 +119,7 @@ curl -fsSL https://ollama.com/install.sh | sh
 winget install Ollama.Ollama
 ```
 
-Start Ollama & pull models:
+Run and pull models:
 
 ```bash
 ollama serve
@@ -126,7 +132,7 @@ ollama list
 
 ## 1.6 Secure environment setup
 
-### `.env.example` (safe to commit)
+### `.env.example`
 
 ```dotenv
 OPENAI_API_KEY=
@@ -135,8 +141,8 @@ ALPHAVANTAGE_API_KEY=
 DATABASE_URL=sqlite:///./app.db
 OLLAMA_BASE_URL=http://localhost:11434
 # Optional overrides
-# OPENAI_MODEL=gpt-4o-mini
 # OLLAMA_MODEL=llama3
+# OPENAI_MODEL=gpt-4o-mini
 ```
 
 ### `.gitignore`
@@ -148,20 +154,20 @@ app.db
 __pycache__/
 ```
 
-### Create your local `.env`
+### Create your actual `.env`
 
 ```bash
 cp .env.example .env
 ```
 
-🚫 If `.env` was committed:
+🚫 If `.env` was committed accidentally:
 
 ```bash
 git rm --cached .env
-git commit -m "Remove .env from tracking"
+git commit -m "Remove .env from Git"
 ```
 
-Rotate your API keys.
+Rotate your keys.
 
 ---
 
@@ -177,9 +183,9 @@ touch app/api/{__init__.py,routes.py}
 
 ---
 
-## 1.8 FastAPI skeleton
+## 1.8 Basic FastAPI skeleton
 
-`app/main.py`:
+`app/main.py` (will be expanded in Step 5):
 
 ```python
 from fastapi import FastAPI
@@ -197,47 +203,43 @@ Run:
 uvicorn app.main:app --reload
 ```
 
-Open: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
-
 ---
 
 # 💾 Step 2 — Database & Memory
 
-LangGraph state resets each run → we need **persistent memory**.
+LangGraph’s state is ephemeral → we need persistent memory.
 
 ---
 
-## 2.1 Schema overview
+## 2.1 Schema
 
-| Table         | Fields                                              |
-| ------------- | --------------------------------------------------- |
-| users         | id, external_id, created_at                         |
-| conversations | id, user_id, title, created_at                      |
-| messages      | id, conversation_id, role, content_json, created_at |
+| Table           | Fields                                              |
+| --------------- | --------------------------------------------------- |
+| `users`         | id, external_id, created_at                         |
+| `conversations` | id, user_id, title, created_at                      |
+| `messages`      | id, conversation_id, role, content_json, created_at |
 
 ---
 
-## 2.2 Initialize database
+## 2.2 Initialize DB
 
 ```bash
 python -m app.memory.db
 ```
 
-Or run FastAPI (it auto-creates tables):
+Or start FastAPI (auto-creates tables):
 
 ```bash
 uvicorn app.main:app --reload
 ```
 
-You should see `app.db`.
-
 ---
 
-## 2.3 Verify database
+## 2.3 Verify
 
-Use VS Code SQLite Viewer.
+Open `app.db` via the VS Code SQLite Viewer.
 
-Expected tables:
+Should contain:
 
 * users
 * conversations
@@ -262,26 +264,24 @@ class AgentState(TypedDict):
 
 ---
 
-## 3.2 Tools (API Integrations)
+## 3.2 Tools — Weather, Stocks, Risk Rubric
 
-`get_weather`
-`get_stock_quote`
-`stock_risk_hint`
+Tools include:
 
-Each wrapped with `@tool` so LangGraph can call them automatically.
+* `get_weather`
+* `get_stock_quote`
+* `stock_risk_hint`
+
+Using the `@tool` decorator, so the LLM can invoke them.
 
 ---
 
-## 3.3 Model selection
+## 3.3 Model selection logic
 
-In `graph.py`:
+If `OPENAI_API_KEY` is set → use OpenAI.
+Else → use Ollama Llama3.
 
-| Condition           | Model                       |
-| ------------------- | --------------------------- |
-| Have OPENAI_API_KEY | ChatOpenAI                  |
-| Else                | ChatOllama (llama3 default) |
-
-Override via `.env`:
+Override in `.env`:
 
 ```dotenv
 OLLAMA_MODEL=mistral
@@ -290,27 +290,25 @@ OPENAI_MODEL=gpt-4o
 
 ---
 
-## 3.4 LangGraph architecture
+## 3.4 LangGraph workflow
 
 ```
-User → Agent Node → [tool?] → ToolNode → Agent → END
+User → Agent Node → (Tool requested?) → ToolNode → Agent → END
 ```
-
-Tools execute **only** when the LLM decides they are needed.
 
 ---
 
-## 3.5 `run_agent_turn()` helper
+## 3.5 `run_agent_turn()`
 
 Handles:
 
-1. Create/load user
-2. Load conversation history
-3. Run LangGraph
+1. Load or create user
+2. Load or create conversation
+3. Run the graph
 4. Persist messages
 5. Return assistant text
 
-Usage:
+Example:
 
 ```python
 from app.agent.graph import run_agent_turn
@@ -320,7 +318,7 @@ print(resp)
 
 ---
 
-## 3.6 Smoke Test (End-to-End)
+## 3.6 Smoke Test
 
 Run:
 
@@ -334,14 +332,11 @@ Or:
 python scripts/smoke_test.py --user ray@example.com --city "Austin,US" --symbol AAPL
 ```
 
-Expected output:
+Expected:
 
 ```
---- Assistant (1) ---
-The weather in Austin,...
-
---- Assistant (1) ---
-AAPL trades at...
+The weather is...
+AAPL is trading at...
 Risk: Medium
 ```
 
@@ -349,97 +344,211 @@ Risk: Medium
 
 # 🧪 Step 4 — Risk Rubric, Error Handling & Tests
 
-This step introduces:
+This step improves:
 
-* Stronger **stock risk rubric**
-* Improved **stock tool error handling**
-* `percent_change_float` for math
-* **Pytest test suite**
-* A **dummy LLM** for graph tests (offline)
+* stock risk rubric
+* error handling for tools
+* adds numeric percent change
+* adds pytest testing
 
 ---
 
 ## 4.1 Updated `stock_risk_hint()`
 
-```python
-def stock_risk_hint() -> str:
-    return (
-        "Use this rubric for risk levels:\n"
-        "- Low risk: price change between -1% and +1%\n"
-        "- Medium risk: -3% to -1% OR +1% to +3%\n"
-        "- High risk: < -3% or > +3%\n\n"
-        "Explain reasoning and note this is not financial advice."
-    )
-```
+Explicit rubric:
+
+* Low risk: −1% → +1%
+* Medium: −3% → −1% OR +1% → +3%
+* High: < −3% OR > +3%
 
 ---
 
 ## 4.2 Improved `get_stock_quote`
 
-Includes:
+Adds:
 
-* consistent error structures
-* numeric `percent_change_float`
-
----
-
-## 4.3 Install pytest
-
-Add to `requirements.txt` (already included above):
-
-```txt
-pytest
-pytest-mock
-```
-
-Install:
-
-```bash
-pip install -r requirements.txt
-```
+* structured errors
+* `percent_change_float`
+* safer conversions
 
 ---
 
-## 4.4 Unit test the tools
+## 4.3 Pytest installation
 
-Create:
-
-`tests/test_tools.py`
-
-(Tests weather + stock tools using mocked HTTP responses.)
+Already added to `requirements.txt`.
 
 Run:
 
 ```bash
-pytest tests/test_tools.py -q
+pytest -q
 ```
 
 ---
 
-## 4.5 Test the LangGraph agent with a DummyLLM
+## 4.4 Tool tests
 
-Create:
+File: `tests/test_tools.py`
 
-`tests/test_graph.py`
+Covers:
 
-Run:
+* weather success
+* stock success
+* missing API keys
 
-```bash
-pytest tests/test_graph.py -q
+---
+
+## 4.5 Graph tests using DummyLLM
+
+File: `tests/test_graph.py`
+
+This tests:
+
+* conversation creation
+* message persistence
+* consistent agent reply
+
+Without calling any real LLM.
+
+---
+
+# ⚡ Step 5 — FastAPI `/api/chat` Endpoint
+
+We now expose the agent as a real API.
+
+---
+
+## 5.1 Create Pydantic request/response models
+
+`app/memory/schemas.py`:
+
+```python
+from pydantic import BaseModel, Field
+from typing import Optional
+
+class ChatRequest(BaseModel):
+    external_user_id: str = Field(..., min_length=1)
+    conversation_id: Optional[int] = None
+    user_text: str = Field(..., min_length=1)
+
+class ChatResponse(BaseModel):
+    conversation_id: int
+    assistant: str
+
+class HealthResponse(BaseModel):
+    status: str = "ok"
 ```
 
-All tests run offline — no LLM, no network.
+---
+
+## 5.2 Create the `/api/chat` route
+
+`app/api/routes.py`:
+
+```python
+from fastapi import APIRouter, HTTPException
+from app.agent.graph import run_agent_turn
+from app.memory.schemas import ChatRequest, ChatResponse
+
+router = APIRouter(tags=["chat"])
+
+@router.post("/chat", response_model=ChatResponse)
+def chat_endpoint(payload: ChatRequest) -> ChatResponse:
+    if not payload.user_text.strip():
+        raise HTTPException(status_code=400, detail="user_text cannot be empty.")
+
+    result = run_agent_turn(
+        external_user_id=payload.external_user_id,
+        conversation_id=payload.conversation_id,
+        user_text=payload.user_text.strip(),
+    )
+    return ChatResponse(**result)
+```
+
+---
+
+## 5.3 Update `app/main.py` to include the router
+
+```python
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.routes import router as chat_router
+from app.memory.db import init_db
+from app.memory.schemas import HealthResponse
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title="LangGraph + Ollama Agent",
+        version="0.1.0",
+        description="Agent with LangGraph + Ollama + FastAPI.",
+    )
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.on_event("startup")
+    def startup_event():
+        init_db()
+
+    @app.get("/health", response_model=HealthResponse)
+    def health():
+        return HealthResponse()
+
+    app.include_router(chat_router, prefix="/api")
+    return app
+
+app = create_app()
+```
+
+---
+
+## 5.4 Usage examples
+
+### Start server
+
+```bash
+uvicorn app.main:app --reload
+```
+
+### Start a new conversation
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+        "external_user_id": "ray@example.com",
+        "conversation_id": null,
+        "user_text": "Weather in Austin,US?"
+      }'
+```
+
+### Continue conversation
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/chat \
+  -H "Content-Type: application/json" \
+  -d '{
+        "external_user_id": "ray@example.com",
+        "conversation_id": 1,
+        "user_text": "Check AAPL risk today"
+      }'
+```
 
 ---
 
 # 🧩 Troubleshooting
 
-| Issue              | Fix                                 |
-| ------------------ | ----------------------------------- |
-| Missing API keys   | Add to `.env`                       |
-| Ollama not running | `ollama serve`                      |
-| DB locked          | delete `app.db` → reinit            |
-| Bad symbols        | stock tool returns structured error |
+| Issue                  | Fix                      |
+| ---------------------- | ------------------------ |
+| Missing API keys       | Fill `.env`              |
+| Ollama not running     | `ollama serve`           |
+| DB corrupted           | Remove `app.db` → reinit |
+| Tools returning errors | Check API quotas         |
 
 ---
 
@@ -448,8 +557,8 @@ All tests run offline — no LLM, no network.
 ```
 app/
   agent/
-    tools.py
     graph.py
+    tools.py
     state.py
   memory/
     db.py
@@ -474,13 +583,22 @@ README.md
 ```bash
 git clone <YOUR_REPO_URL>
 cd langgraph-ollama-agent
+
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
+
 cp .env.example .env
+# Add API keys for weather + stocks
+
 ollama serve
 ollama pull llama3
+
 python -m app.memory.db
+
 python scripts/smoke_test.py
+
+uvicorn app.main:app --reload
+
 pytest -q
 ```
 
@@ -488,13 +606,21 @@ pytest -q
 
 # 🧾 License
 
-MIT — educational and experimental use only.
+MIT — educational and experimental use.
 
 ---
 
 # 👏 Credits
 
-Built to teach **tool-calling agent design**, **persistent memory**, and **local LLM development using LangGraph + Ollama**.
+Built to teach:
+
+* Tool-calling agents
+* Persistent conversational memory
+* Hybrid LLM architecture (Ollama + OpenAI)
+* FastAPI integration
+* Real API-driven agent workflows
+
+Enjoy your **LangGraph + Ollama Agent! 🚀**
 
 ```
 
