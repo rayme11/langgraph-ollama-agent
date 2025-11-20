@@ -1,6 +1,3 @@
-
-
-````md
 # 🧠 NewsGenie — AI News, Weather, Stocks & Web Search Assistant  
 An end-to-end agentic system powered by **LangGraph**, **LangChain**, **Ollama / OpenAI**, **NewsAPI**, **AlphaVantage**, **OpenWeatherMap**, **Tavily Search**, and **FastAPI** + **Streamlit** UI.
 
@@ -369,7 +366,4 @@ Ensure:
 ```
 WEB_SEARCH_ENABLED=true
 WEB_SEARCH_API_KEY=your_tavily_key
-```
-
-
 ```
