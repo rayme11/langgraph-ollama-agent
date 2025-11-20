@@ -8,7 +8,7 @@ An end-to-end agentic system powered by **LangGraph**, **LangChain**, **Ollama /
 
 Below is the high-level system architecture for the NewsGenie agentic workflow:
 
-![NewsGenie Architecture](docs/assets/newsgenie_architecture.png)
+![NewsGenie Architecture](https://raw.githubusercontent.com/rayme11/langgraph-ollama-agent/main/docs/assets/newsgenie_architecture.png)
 
 
 NewsGenie intelligently handles:
