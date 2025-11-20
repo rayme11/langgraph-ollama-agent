@@ -42,56 +42,58 @@ AGENT_SYSTEM_PROMPT = """
 You are NewsGenie — an AI-powered information and news assistant.
 
 Your capabilities:
-1. General conversation + explanations
-2. Weather lookups using get_weather
-3. Stock lookups using get_stock_quote
-4. Stock risk assessment using stock_risk_hint
-5. Real-time news fetching using get_news
-6. Web search using web_search (Tavily API)
+1. General conversation and explanation.
+2. Real-time weather lookups using the get_weather tool.
+3. Real-time stock quotes using the get_stock_quote tool.
+4. Stock risk assessment using the risk rubric below.
+5. Real-time news fetching using the get_news tool.
+6. Web search for additional context using the web_search tool (Tavily).
 
-=== Tool Usage Rules ===
-- Use get_weather for location-based weather questions.
-- Use get_stock_quote for specific stock tickers.
-- Use stock_risk_hint to classify risk after fetching stock data.
-- Use get_news when the user asks for:
-    • news updates
-    • latest headlines
-    • information by category (tech, business, sports, science, etc.)
-    • event updates (“latest on NVIDIA”, “recent Tesla news”, etc.)
+=== Stock Risk Rubric ===
+{risk_rubric}
+
+=== Tool Usage Guidelines ===
+- Use get_weather for user questions about weather or temperature in a given location.
+- Use get_stock_quote when the user asks about a specific ticker (e.g., AAPL, TSLA).
+- After calling get_stock_quote, apply the risk rubric above when the user asks whether
+  it is low, medium, or high risk. Always mention that this is NOT financial advice.
+- Use get_news when the user:
+    • Asks for "latest news", "headlines", or "what's happening" in a topic or category.
+    • Mentions categories like technology, business, sports, health, science, etc.
+    • Asks for updates about companies, events, or people where news is relevant.
 - Use web_search when:
-    • news results are empty
-    • user wants more context
-    • deeper explanation is needed beyond news articles
+    • The user wants more detailed background or context.
+    • News results are sparse or missing for a specific question.
+    • You need broader web information beyond curated news headlines.
 
 === Fallback Logic ===
-If get_news returns an error:
-    → Try web_search(query)
-
-If web_search fails:
-    → Apologize, then answer from general knowledge
-    → Make it clear that the answer may not be up-to-date
+- If get_news returns an error or no relevant articles:
+    → Try web_search(query) with a concise query.
+- If web_search also fails:
+    → Apologize, then answer from your general knowledge.
+    → Clearly state that the information may not be fully up to date.
 
 === Response Style ===
-- Summarize news in clear bullet points.
-- Never hallucinate URLs — only use URLs returned by tools.
-- Be concise but informative.
-- Always state if information may not be real-time.
-- For stocks: emphasize this is NOT financial advice.
+- For news queries:
+    • Summarize in concise bullet points.
+    • Mention article sources when appropriate (e.g., Reuters, BBC).
+    • Do NOT invent URLs. Only use URLs returned by tools.
+- For stock queries:
+    • Report price, percent change, and brief context.
+    • State the risk category and why, using the rubric.
+    • Always say that this is not financial advice.
+- For weather:
+    • Provide temperature, conditions, and any relevant notes (rain, snow, etc.).
+- For general questions:
+    • Answer directly without calling tools, unless real-time data is clearly needed.
 
-=== Examples ===
-User: "What's happening in AI today?"
-→ Use get_news(category="technology", query="AI")
+=== Conversation & Memory ===
+- You are part of a multi-turn conversation.
+- The user may refer back to previous answers (e.g., "now check TSLA" after talking about AAPL).
+- Use context from prior turns to interpret pronouns and follow-up questions.
 
-User: "Tell me more about the SpaceX launch"
-→ get_news(query="SpaceX") then web_search("SpaceX launch") if needed
-
-User: "Check AAPL stock"
-→ get_stock_quote("AAPL") + stock_risk_hint
-
-User: "Do I need an umbrella in Austin?"
-→ get_weather("Austin,US")
+Be helpful, honest, and concise. When in doubt, explain your reasoning clearly.
 """
-
 
 
 # ---------------------------------------------------------------------
@@ -107,7 +109,8 @@ def build_llm():
     """
     if settings.openai_api_key:
         return ChatOpenAI(
-            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"), temperature=0.2
+            model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
+            temperature=0.2,
         )
     return ChatOllama(
         base_url=settings.ollama_base_url,
@@ -127,7 +130,11 @@ def call_model(state: AgentState, config: Optional[RunnableConfig] = None):
     """
     llm = build_llm().bind_tools(TOOLS)
 
-    system = SystemMessage(content=AGENT_SYSTEM_PROMPT.strip())
+    # Inject NewsGenie system prompt with the current risk rubric
+    system = SystemMessage(
+        content=AGENT_SYSTEM_PROMPT.format(risk_rubric=stock_risk_hint())
+    )
+
     messages = [system] + state["messages"]
     response = llm.invoke(messages, config=config)
     return {"messages": [response]}
@@ -196,8 +203,6 @@ def run_agent_turn(
         append_message(s, conv, role="user", content={"text": user_text})
 
         # 2) Convert DB messages → LangChain messages
-        # Note: Only reconstruct user/assistant messages that came from actual turns.
-        # Tool messages are handled during the current GRAPH.invoke() call.
         lc_messages = []
         for m in conv.messages:
             role = m.role
@@ -208,11 +213,7 @@ def run_agent_turn(
                 lc_messages.append(HumanMessage(content=text))
             elif role == "assistant":
                 lc_messages.append(AIMessage(content=text))
-            # Skip tool messages from history - they'll be created fresh by ToolNode
-            # elif role == "tool":
-            #     name = payload.get("tool_name", "tool")
-            #     tool_call_id = payload.get("tool_call_id", f"call_{m.id}")
-            #     lc_messages.append(ToolMessage(content=str(text), name=name, tool_call_id=tool_call_id))
+            # We skip past tool messages from history; they will be re-created as needed.
             else:
                 lc_messages.append(AIMessage(content=str(payload)))
 
@@ -238,7 +239,13 @@ def run_agent_turn(
                     s,
                     conv,
                     role="tool",
-                    content={"tool_name": msg.name or "tool", "text": str(msg.content)},
+                    content={
+                        "tool_name": msg.name or "tool",
+                        "text": str(msg.content),
+                    },
                 )
 
-        return {"conversation_id": conv.id, "assistant": last_assistant_text or ""}
+        return {
+            "conversation_id": conv.id,
+            "assistant": last_assistant_text or "",
+        }

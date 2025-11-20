@@ -1,7 +1,15 @@
 
+
 ````md
 # 🧠 NewsGenie — AI News, Weather, Stocks & Web Search Assistant  
 An end-to-end agentic system powered by **LangGraph**, **LangChain**, **Ollama / OpenAI**, **NewsAPI**, **AlphaVantage**, **OpenWeatherMap**, **Tavily Search**, and **FastAPI** + **Streamlit** UI.
+
+## 🖼 NewsGenie Architecture Diagram
+
+Below is the high-level system architecture for the NewsGenie agentic workflow:
+
+![NewsGenie Architecture](docs/assets/newsgenie_visual_architecture.png)
+
 
 NewsGenie intelligently handles:
 - 📰 **Real-time news** (technology, sports, business, science, etc.)
