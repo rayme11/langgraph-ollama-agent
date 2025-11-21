@@ -1,5 +1,26 @@
-# 🧠 NewsGenie — AI News, Weather, Stocks & Web Search Assistant  
-An end-to-end agentic system powered by **LangGraph**, **LangChain**, **Ollama / OpenAI**, **NewsAPI**, **AlphaVantage**, **OpenWeatherMap**, **Tavily Search**, and **FastAPI** + **Streamlit** UI.
+# 🧠 NewsGenie — AI-Powered News, Weather, Stocks & Web Search Assistant
+
+An end-to-end agentic system built with **LangGraph**, **LangChain**, **Streamlit**, **FastAPI**, **SQLite**, and real-time APIs (NewsAPI, OpenWeatherMap, AlphaVantage, Tavily Search).  
+Works with both **OpenAI** and **local LLMs via Ollama**.
+
+---
+
+## 🔧 Technology Stack
+
+![Python](https://img.shields.io/badge/Python-3.11-blue?logo=python)
+![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?logo=fastapi&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Frontend-Streamlit-FF4B4B?logo=streamlit&logoColor=white)
+![LangChain](https://img.shields.io/badge/Framework-LangChain-2C4F7C)
+![LangGraph](https://img.shields.io/badge/Agents-LangGraph-8A2BE2)
+![Ollama](https://img.shields.io/badge/Local_LLM-Ollama-000000?logo=ollama&logoColor=white)
+![OpenAI](https://img.shields.io/badge/LLM-OpenAI-412991?logo=openai&logoColor=white)
+![SQLite](https://img.shields.io/badge/DB-SQLite-07405E?logo=sqlite&logoColor=white)
+![NewsAPI](https://img.shields.io/badge/News-NewsAPI-blue)
+![OpenWeather](https://img.shields.io/badge/Weather-OpenWeatherMap-orange)
+![AlphaVantage](https://img.shields.io/badge/Stocks-AlphaVantage-yellow)
+![Tavily](https://img.shields.io/badge/Search-Tavily-purple)
+
+---
 
 ## 🎥 Live Demo (10 seconds)
 
