@@ -378,16 +378,3 @@ WEB_SEARCH_ENABLED=true
 WEB_SEARCH_API_KEY=<your_key>
 ```
 
----
-
-# 12. Next Steps
-
-* Add RAG support
-* Deploy to Streamlit Cloud / HuggingFace Spaces
-* Dockerize backend + UI
-* Add OAuth login
-* Add analytics dashboards
-
----
-
-```
