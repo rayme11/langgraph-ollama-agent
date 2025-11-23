@@ -28,12 +28,17 @@ Here’s a quick demonstration of NewsGenie in action:
 
 ![NewsGenie Demo](docs/assets/demo_newsgenie.gif)
 
+---
+
 ## 🖼 NewsGenie Architecture Diagram
 
 Below is the high-level system architecture for the NewsGenie agentic workflow:
 
 ![NewsGenie Architecture](docs/assets/newsgenie_architecture.png)
 
+---
+
+# 📰 What NewsGenie Can Do
 
 NewsGenie intelligently handles:
 - 📰 **Real-time news** (technology, sports, business, science, etc.)
@@ -56,41 +61,117 @@ This project demonstrates:
 
 # 📘 Table of Contents
 
-1. Overview  
+1. Quickstart  
 2. Requirements  
-3. Setup & Installation  
-4. Environment Variables  
-5. Project Structure  
-6. Tools Overview  
-7. LangGraph Agent Architecture  
-8. FastAPI Backend  
-9. Streamlit UI  
-10. Example Queries  
-11. Testing  
-12. Troubleshooting  
-13. Next Steps  
+3. Environment Variables  
+4. Project Structure  
+5. Tools Overview  
+6. LangGraph Agent Architecture  
+7. FastAPI Backend  
+8. Streamlit UI  
+9. Example Queries  
+10. Testing  
+11. Troubleshooting  
+12. Next Steps  
 
 ---
 
-# 1. Overview
+# 🚀 1. Quickstart (Fastest Way to Run)
 
-Modern users struggle with fragmented information sources.  
-NewsGenie solves this by integrating:
+Run NewsGenie locally in under 2 minutes.
 
-- **Real-time APIs**  
-- **LLM reasoning**  
-- **LangGraph orchestrated tools**  
-- **FastAPI for backend**  
-- **Streamlit interactive UI**  
+---
 
-NewsGenie distinguishes:
-- General questions  
-- News requests  
-- Stock queries  
-- Weather lookups  
-- Web search tasks  
+### 1️⃣ Clone the repository
 
-… and calls the appropriate tool.
+```bash
+git clone git@github.com:rayme11/langgraph-ollama-agent.git
+cd langgraph-ollama-agent
+````
+
+---
+
+### 2️⃣ Create and activate a virtual environment
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate     # macOS / Linux
+# OR
+.\.venv\Scripts\activate      # Windows
+```
+
+---
+
+### 3️⃣ Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+---
+
+### 4️⃣ Create your `.env` file
+
+```bash
+cp .env.example .env
+```
+
+Then fill in your API keys (NewsAPI, AlphaVantage, OpenWeather, Tavily, etc.)
+
+Optional: enable OpenAI
+Optional: enable local Ollama LLMs:
+
+```bash
+brew install ollama
+ollama pull llama3
+ollama serve
+```
+
+---
+
+### 5️⃣ Initialize the SQLite database
+
+```bash
+python -c "from app.memory.db import init_db; init_db()"
+```
+
+---
+
+### 6️⃣ Start the backend API (FastAPI)
+
+```bash
+uvicorn app.main:app --reload
+```
+
+Backend available at:
+
+* [http://localhost:8000](http://localhost:8000)
+* [http://localhost:8000/docs](http://localhost:8000/docs) (OpenAPI)
+
+---
+
+### 7️⃣ Start the Streamlit UI
+
+Open a second terminal:
+
+```bash
+streamlit run streamlit_app.py
+```
+
+UI available via:
+
+👉 [http://localhost:8501](http://localhost:8501)
+
+---
+
+🎉 **You are now running NewsGenie!**
+
+Try:
+
+* `Latest AI tech news?`
+* `Weather in Austin,US?`
+* `Is AAPL high risk today?`
+* `Search SpaceX launch details`
 
 ---
 
@@ -98,34 +179,23 @@ NewsGenie distinguishes:
 
 Install:
 
-- Python 3.11+
-- pip
-- sqlite3
-- **Ollama**
-  ```bash
-  brew install ollama
-  ollama pull llama3
-  ollama serve
-````
+* Python 3.11+
+* pip
+* sqlite3
 
-* Optional: OpenAI API Key
-
----
-
-# 3. Setup & Installation
+**Optional: Ollama for local LLMs**
 
 ```bash
-git clone <your_repo>
-cd newsgenie-agent
-
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
+brew install ollama
+ollama pull llama3
+ollama serve
 ```
+
+**Optional: OpenAI**
 
 ---
 
-# 4. Environment Variables
+# 3. Environment Variables
 
 Create `.env`:
 
@@ -164,7 +234,7 @@ cp .env.example .env
 
 ---
 
-# 5. Project Structure
+# 4. Project Structure
 
 ```
 app/
@@ -191,29 +261,19 @@ README.md
 
 ---
 
-# 6. Tools Overview (Weather, Stocks, News, Web Search)
+# 5. Tools Overview
 
-NewsGenie uses LangChain’s `@tool` decorator to expose external functions to the LLM.
-
-### Tools included:
-
-| Tool              | Purpose                    | API            |
-| ----------------- | -------------------------- | -------------- |
-| `get_weather`     | Real weather               | OpenWeatherMap |
-| `get_stock_quote` | Stock prices               | AlphaVantage   |
-| `stock_risk_hint` | Classify risk              | Internal logic |
-| `get_news`        | Top headlines & topic news | NewsAPI        |
-| `web_search`      | General search             | Tavily Search  |
-
-### The **full updated tools file** is in:
-
-```
-app/agent/tools.py
-```
+| Tool              | Purpose                | API            |
+| ----------------- | ---------------------- | -------------- |
+| `get_weather`     | Real weather           | OpenWeatherMap |
+| `get_stock_quote` | Stock prices           | AlphaVantage   |
+| `stock_risk_hint` | Classify risk          | Internal logic |
+| `get_news`        | Headlines & topic news | NewsAPI        |
+| `web_search`      | General search         | Tavily Search  |
 
 ---
 
-# 7. LangGraph Agent Architecture
+# 6. LangGraph Agent Architecture
 
 ```
 User → AgentNode → (tool call?) → ToolNode → AgentNode → Response
@@ -221,22 +281,13 @@ User → AgentNode → (tool call?) → ToolNode → AgentNode → Response
 
 Key components:
 
-* **AgentState**
-* **System Prompt (AGENT_SYSTEM_PROMPT)**
-* **Agent Node (call_model)**
-* **Tool Node**
-* **Conditional edges** for tool invocation
-* **SQLite persistence** via `run_agent_turn()`
+* AgentState
+* System Prompt
+* Tool Nodes
+* Conditional edges
+* SQLite persistence
 
-LangGraph routes automatically:
-
-* Weather → `get_weather`
-* Stocks → `get_stock_quote`
-* News → `get_news`
-* Web search → `web_search`
-* Errors → fallback logic
-
-Your agent is defined in:
+Agent implementation:
 
 ```
 app/agent/graph.py
@@ -244,7 +295,7 @@ app/agent/graph.py
 
 ---
 
-# 8. FastAPI Backend
+# 7. FastAPI Backend
 
 Start backend:
 
@@ -252,9 +303,7 @@ Start backend:
 uvicorn app.main:app --reload
 ```
 
-### POST `/api/chat`
-
-Body:
+POST `/api/chat` example:
 
 ```json
 {
@@ -264,133 +313,81 @@ Body:
 }
 ```
 
-Response:
-
-```json
-{
-  "conversation_id": 12,
-  "assistant": "Here are the latest AI developments..."
-}
-```
-
 ---
 
-# 9. Streamlit UI (Full Chat Interface)
+# 8. Streamlit UI
 
-Start UI:
+Launch:
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-### Features:
+Features:
 
-* Sidebar:
-
-  * User identity input
-  * Preferred news category
-  * Start new conversation button
-* Chat interface using `st.chat_message`
-* Persistent memory via your FastAPI+SQLite backend
-* Tooltip hints for user queries
-
-You can ask:
-
-* “Weather in Austin?”
-* “Check TSLA risk today”
-* “Latest technology news about AI”
-* “Search the web for SpaceX launch”
-
-The UI file:
-
-```
-streamlit_app.py
-```
+* Sidebar user identity
+* Persistent memory
+* Multi-category news
+* Weather + stocks
+* Tavily search integration
 
 ---
 
-# 10. Example Queries
-
-### Weather
+# 9. Example Queries
 
 ```
 Weather in Tokyo?
-```
-
-### Stocks
-
-```
 Is AAPL high or low risk today?
-```
-
-### News (category auto-detect)
-
-```
-What’s happening in technology today?
-```
-
-### Topic news
-
-```
+What's happening in technology today?
 Give me recent news about NVIDIA.
-```
-
-### Web search
-
-```
 Search the web for SpaceX launch details.
-```
-
-### Mixed request
-
-```
 Weather in Austin and latest AI news.
 ```
 
 ---
 
-# 11. Testing
-
-Run tests:
+# 10. Testing
 
 ```bash
 pytest -q
-```
-
-Run smoke test:
-
-```bash
 python scripts/smoke_test.py
 ```
 
 ---
 
-# 12. Troubleshooting
+# 11. Troubleshooting
 
-### “Missing API key”
+### Missing API key
 
-Add missing key in `.env`.
+Add it to `.env`.
 
-### “Ollama model not found”
-
-Run:
+### Ollama model not found
 
 ```bash
 ollama pull llama3
 ```
 
-### “News not loading”
+### News not loading
 
-Check:
+Check `NEWS_API_KEY`.
 
-* NEWS_API_KEY
-* NEWS_API_BASE_URL
-
-### “Web search disabled”
-
-Ensure:
+### Web search disabled
 
 ```
 WEB_SEARCH_ENABLED=true
-WEB_SEARCH_API_KEY=your_tavily_key
+WEB_SEARCH_API_KEY=<your_key>
+```
+
+---
+
+# 12. Next Steps
+
+* Add RAG support
+* Deploy to Streamlit Cloud / HuggingFace Spaces
+* Dockerize backend + UI
+* Add OAuth login
+* Add analytics dashboards
+
+---
+
 ```
