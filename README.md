@@ -21,32 +21,36 @@ It works with both **OpenAI** and **local LLMs via Ollama** and provides:
 
 ## 🔧 Technology Stack
 
-- Python 3.9+
-- LangChain
-- LangGraph
-- FastAPI
-- Streamlit
-- SQLite
-- Ollama (local LLM)
-- OpenAI (optional)
-- OpenWeatherMap
-- AlphaVantage (stocks)
-- NewsAPI
-- Tavily Search API
-- The Odds API (sports betting)
-- Sportsdata.io (team & player statistics)
+<div align="left">
+
+<img src="https://img.shields.io/badge/Python-3.9+-blue?logo=python" />
+<img src="https://img.shields.io/badge/LangChain-Framework-2C4F7C" />
+<img src="https://img.shields.io/badge/LangGraph-Agents-8A2BE2" />
+<img src="https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white" />
+<img src="https://img.shields.io/badge/Streamlit-UI-FF4B4B?logo=streamlit&logoColor=white" />
+<img src="https://img.shields.io/badge/DB-SQLite-07405E?logo=sqlite&logoColor=white" />
+<img src="https://img.shields.io/badge/LLM-Ollama-000000?logo=ollama&logoColor=white" />
+<img src="https://img.shields.io/badge/LLM-OpenAI-412991?logo=openai&logoColor=white" />
+<img src="https://img.shields.io/badge/Weather-OpenWeatherMap-orange" />
+<img src="https://img.shields.io/badge/Stocks-AlphaVantage-yellow" />
+<img src="https://img.shields.io/badge/News-NewsAPI-blue" />
+<img src="https://img.shields.io/badge/Search-Tavily-purple" />
+<img src="https://img.shields.io/badge/Odds-The_Odds_API-brown" />
+<img src="https://img.shields.io/badge/Stats-Sportsdata.io-green" />
+
+</div>
 
 ---
 
 ## 🎥 Live Demo (Optional)
 
-![NewsGenie Demo](https://raw.githubusercontent.com/rayme11/langgraph-ollama-agent/main/docs/assets/demo_newsgenie.gif)
+![NewsGenie Demo](docs/assets/demo_newsgenie.gif)
 
 ---
 
 ## 🖼 Architecture Diagram (Optional)
 
-![NewsGenie Architecture](https://raw.githubusercontent.com/rayme11/langgraph-ollama-agent/main/docs/assets/newsgenie_architecture.png)
+![NewsGenie Architecture](docs/assets/newsgenie_architecture.png)
 
 ---
 
@@ -73,10 +77,10 @@ It works with both **OpenAI** and **local LLMs via Ollama** and provides:
 
 NewsGenie is a **multi-tool reasoning AI agent** that:
 
-- Detects what the user is asking
-- Calls the correct API automatically
-- Reasons over live data
-- Produces structured explanations
+- Detects what the user is asking  
+- Calls the correct API automatically  
+- Reasons over live data  
+- Produces structured explanations  
 
 It supports:
 
@@ -92,6 +96,11 @@ It supports:
 
 Install:
 
+- Python 3.9+
+- pip
+- sqlite3
+- **Ollama (local LLM)**
+
 ```bash
 brew install ollama
 ollama pull llama3
@@ -100,7 +109,7 @@ ollama serve
 
 Optional:
 
-* OpenAI API Key
+* OpenAI API key for cloud inference
 
 ---
 
@@ -145,8 +154,8 @@ WEB_SEARCH_API_KEY=
 DATABASE_URL=sqlite:///./app.db
 
 # ---- Sports Betting ----
-ODDS_API_KEY=
-SPORTSDATA_API_KEY=
+ODDS_API_KEY=                    # The Odds API
+SPORTSDATA_API_KEY=              # Sportsdata.io
 
 SPORTSDATA_NBA_BASE_URL=https://api.sportsdata.io/v3/nba
 SPORTSDATA_NFL_BASE_URL=https://api.sportsdata.io/v3/nfl
@@ -160,12 +169,12 @@ SPORTSDATA_SOCCER_BASE_URL=https://api.sportsdata.io/v3/soccer
 
 # 5. Project Structure
 
-```
+```text
 app/
   agent/
-    graph.py
-    tools.py
-    sports_tools.py
+    graph.py              # LangGraph workflow
+    tools.py              # All tools registry
+    sports_tools.py       # Odds + team + player stats
     state.py
   memory/
     db.py
@@ -201,44 +210,50 @@ README.md
 
 # 7. 🏀 Sports Betting System
 
-Supports:
+NewsGenie supports:
 
-* Moneyline (+150 / -180)
-* Point spreads (Team -3.5, +4.5)
-* Totals (Over / Under)
-* Player props
-* Team & player stats (last N days)
-* LOW / MEDIUM / HIGH confidence classification
+* ✅ Moneyline bets (+150 / -180)
+* ✅ Point spreads (Team -3.5, +4.5)
+* ✅ Totals (Over / Under)
+* ✅ Player props (Over 26.5 points)
+* ✅ Team & player historical performance
+* ✅ LOW / MEDIUM / HIGH confidence classification
 
-Recommendations use:
+### How recommendations are calculated:
 
-1. Live odds
-2. Team form
-3. Player form
-4. Implied probabilities
-5. Trend analysis
+1. Fetch live odds with **The Odds API**
+2. Fetch team form (last N days) with **Sportsdata.io**
+3. Optional: Fetch player form for props
+4. Compute implied probability
+5. Analyze recent scoring margins, trends, and matchups
+6. Classify confidence level:
 
-Always includes a **risk disclaimer**.
+   * HIGH
+   * MEDIUM
+   * LOW
+   * NOT RECOMMENDED
+
+⚠️ Always includes a **risk disclaimer**
 
 ---
 
 # 8. LangGraph Agent Architecture
 
-```
+```text
 User → AgentNode → ToolNode → AgentNode → Final Answer
 ```
 
-Agent automatically:
+The system automatically:
 
-* Selects the correct tool
-* Handles multi-step tool usage
-* Applies betting rubric
+* Decides which tool to call
+* Handles multiple tool calls per prompt
+* Applies the betting rubric via system prompt
 
 ---
 
 # 9. FastAPI Backend
 
-Start:
+Start backend:
 
 ```bash
 uvicorn app.main:app --reload
@@ -246,7 +261,7 @@ uvicorn app.main:app --reload
 
 ### POST `/api/chat`
 
-Request:
+Body:
 
 ```json
 {
@@ -269,69 +284,86 @@ Response:
 
 # 10. Streamlit UI
 
-Start:
+Start UI:
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-Features:
+Supports:
 
-* Full chat interface
-* Persistent memory
-* Supports betting, weather, stocks, news
+* Chat interface
+* Persistent history
+* Betting questions
+* News, weather, stocks
 
 ---
 
 # 11. Sports Betting Example Prompts
 
-```
+```text
 Is Lakers -3.5 a good bet tonight?
-Is Cowboys +4.5 good this week?
-Is LeBron over 26.5 points a good prop?
+
+Is Cowboys +4.5 good this week in the NFL?
+
+Is LeBron over 26.5 points a good prop bet?
+
 Over 210.5 in Raptors vs Celtics?
-Based on last 5 days, is Inter Miami a good moneyline bet?
+
+Based on the last 5 days, is Inter Miami a good moneyline bet today?
 ```
 
 ---
 
 # 12. Testing & Smoke Tests
 
-Run full tests:
+### Run unit tests:
 
 ```bash
 pytest -q
 ```
 
-Run sports smoke test:
+### Run sports betting smoke test:
 
 ```bash
 python -m scripts.smoke_test_sports
 ```
 
+This validates:
+
+* Odds retrieval
+* Team & player stats
+* End-to-end LangGraph execution
+
 ---
 
 # 13. Troubleshooting
 
-| Issue                      | Fix                  |
-| -------------------------- | -------------------- |
-| Missing ODDS_API_KEY       | Add to `.env`        |
-| Missing SPORTSDATA_API_KEY | Add to `.env`        |
-| Ollama model missing       | `ollama pull llama3` |
-| No games found             | Increase `days_back` |
-| API quota exceeded         | Upgrade plan         |
+| Issue                      | Fix                        |
+| -------------------------- | -------------------------- |
+| Missing ODDS_API_KEY       | Add it to `.env`           |
+| Missing SPORTSDATA_API_KEY | Add it to `.env`           |
+| Ollama model not found     | `ollama pull llama3`       |
+| No games found             | Try increasing `days_back` |
+| API quota exceeded         | Upgrade API tier           |
 
 ---
 
-# 14. ⚠️ Disclaimer
+# 14. ⚠️ Legal & Financial Disclaimer
 
-This project is for **educational purposes only**.
-No betting advice is guaranteed.
-Always gamble responsibly.
+This project is **for educational and informational purposes only**.
+
+* **No betting advice is guaranteed**
+* **No financial outcome is promised**
+* Sports betting contains significant risk
+* Always bet responsibly
+* The developers are not responsible for financial losses
 
 ---
 
-✅ NewsGenie now supports **live sports betting intelligence**, **news**, **weather**, **stocks**, **search**, and **full agentic workflows**.
+✅ **NewsGenie now supports live sports betting intelligence with full explainability, real-time odds, and statistical reasoning.**
 
-```
+````
+
+---
 
