@@ -6,6 +6,12 @@ from typing import Optional, TypedDict
 
 from langchain.tools import tool
 from app.config import get_settings
+from app.agent.sports_tools import (
+    get_sports_odds,
+    get_team_form,
+    get_player_form,
+)
+
 
 settings = get_settings()
 
@@ -349,4 +355,12 @@ def web_search(query: str) -> dict:
 
 
 # Export list of tools for graph binding
-TOOLS = [get_weather, get_stock_quote, get_news, web_search]
+TOOLS = [
+    get_weather,
+    get_stock_quote,
+    get_news,
+    web_search,
+    get_sports_odds,
+    get_team_form,
+    get_player_form,
+]

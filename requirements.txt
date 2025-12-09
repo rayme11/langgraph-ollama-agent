@@ -15,5 +15,7 @@ ruff
 pytest
 pytest-mock
 streamlit
+chromadb
+
 
 

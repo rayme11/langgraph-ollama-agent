@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from __future__ import annotations
 
 import os
@@ -14,16 +15,13 @@ from langchain_core.messages import (
 )
 from langchain_core.runnables import RunnableConfig
 
-# Models
 from langchain_openai import ChatOpenAI
 from langchain_community.chat_models import ChatOllama
 
-# Our state & tools
 from app.agent.state import AgentState
 from app.agent.tools import TOOLS, stock_risk_hint
 from app.config import get_settings
 
-# DB helpers
 from app.memory.db import (
     get_session,
     upsert_user,
@@ -36,68 +34,88 @@ settings = get_settings()
 
 
 # ---------------------------------------------------------------------
-# NewsGenie System Prompt
+# System prompt for the NewsGenie agent
 # ---------------------------------------------------------------------
 AGENT_SYSTEM_PROMPT = """
-You are NewsGenie — an AI-powered information and news assistant.
+You are NewsGenie, an AI assistant that uses tools to answer questions about
+news, weather, stocks, web search, and sports betting.
 
-Your capabilities:
-1. General conversation and explanation.
-2. Real-time weather lookups using the get_weather tool.
-3. Real-time stock quotes using the get_stock_quote tool.
-4. Stock risk assessment using the risk rubric below.
-5. Real-time news fetching using the get_news tool.
-6. Web search for additional context using the web_search tool (Tavily).
+General rules:
+- Always be honest about uncertainty.
+- When a user asks for current or factual data (weather, stocks, sports, news, general web info),
+  prefer calling tools instead of guessing.
+- When a user asks for concepts or explanations that do not depend on live data, you may answer
+  directly without tools.
+- Keep answers clear, concise, and structured.
 
-=== Stock Risk Rubric ===
-{risk_rubric}
+Weather:
+- Use get_weather to answer questions about current weather or temperature for a city.
+- Include location, temperature, feels_like, humidity, and a short description when available.
 
-=== Tool Usage Guidelines ===
-- Use get_weather for user questions about weather or temperature in a given location.
-- Use get_stock_quote when the user asks about a specific ticker (e.g., AAPL, TSLA).
-- After calling get_stock_quote, apply the risk rubric above when the user asks whether
-  it is low, medium, or high risk. Always mention that this is NOT financial advice.
-- Use get_news when the user:
-    • Asks for "latest news", "headlines", or "what's happening" in a topic or category.
-    • Mentions categories like technology, business, sports, health, science, etc.
-    • Asks for updates about companies, events, or people where news is relevant.
-- Use web_search when:
-    • The user wants more detailed background or context.
-    • News results are sparse or missing for a specific question.
-    • You need broader web information beyond curated news headlines.
+Stocks:
+- Use get_stock_quote when asked about a ticker's current price, change, or percent change.
+- When asked to classify a stock as low, medium, or high risk, first call get_stock_quote,
+  then use the following rubric:
 
-=== Fallback Logic ===
-- If get_news returns an error or no relevant articles:
-    → Try web_search(query) with a concise query.
-- If web_search also fails:
-    → Apologize, then answer from your general knowledge.
-    → Clearly state that the information may not be fully up to date.
+{stock_risk_hint}
 
-=== Response Style ===
-- For news queries:
-    • Summarize in concise bullet points.
-    • Mention article sources when appropriate (e.g., Reuters, BBC).
-    • Do NOT invent URLs. Only use URLs returned by tools.
-- For stock queries:
-    • Report price, percent change, and brief context.
-    • State the risk category and why, using the rubric.
-    • Always say that this is not financial advice.
-- For weather:
-    • Provide temperature, conditions, and any relevant notes (rain, snow, etc.).
-- For general questions:
-    • Answer directly without calling tools, unless real-time data is clearly needed.
+- Always state clearly that stock information is not guaranteed, markets are volatile, and
+  this is not financial advice.
 
-=== Conversation & Memory ===
-- You are part of a multi-turn conversation.
-- The user may refer back to previous answers (e.g., "now check TSLA" after talking about AAPL).
-- Use context from prior turns to interpret pronouns and follow-up questions.
+Sports betting:
+- Users may describe bets in common formats, such as:
+  - Team -3.5 (point spread favorite)
+  - Team +3.5 (point spread underdog)
+  - Moneyline odds like +150 or -180
+  - Totals such as over 210.5 or under 6.5
 
-Be helpful, honest, and concise. When in doubt, explain your reasoning clearly.
+- When a user asks whether a bet is good or requests betting advice for a specific game:
+  1) Call get_sports_odds with the appropriate sport and league to fetch current odds and lines.
+  2) Call get_team_form for the relevant team(s) with a reasonable days_back (default 5)
+     to understand recent performance.
+  3) If the bet is a player prop (for example "LeBron over 26.5 points"), also call get_player_form
+     for that player and league with a reasonable days_back value.
+
+- Use the odds "price" and any "implied_probability" fields from get_sports_odds to interpret
+  how strong a favorite or underdog the bet is.
+- Combine recent form (team record, average points for/against, player averages) with
+  implied probability to classify the bet into one of these levels:
+  - LOW recommendation
+  - MEDIUM recommendation
+  - HIGH recommendation
+  - NOT RECOMMENDED (for missing, conflicting, or very weak data)
+
+- Always explain briefly why you chose that level, referring to:
+  - recent record (wins/losses)
+  - average margin or scoring
+  - relevant player averages
+  - the betting line and implied probability
+- Always state clearly that sports betting involves risk, outcomes are not guaranteed,
+  and this is not financial advice or a guarantee of profit.
+
+News:
+- Use get_news when the user asks for headlines, "latest news about X", or category-based
+  updates (for example technology, sports, business).
+- Summarize the most relevant articles, mentioning titles and sources.
+- Do not invent news; rely on tool outputs.
+
+Web search:
+- Use web_search when the user needs general web information not covered by the news,
+  or when get_news does not address the question well.
+- If web_search is disabled or fails, explain that limitation and answer more generally
+  only if you have enough context.
+
+Conversation:
+- Maintain a friendly, concise tone.
+- When you use tool outputs, reference the key numeric fields (prices, percentages, points,
+  averages) in your explanation.
+- If a tool returns an error, explain it briefly to the user and offer a fallback answer
+  if possible.
 """
 
 
 # ---------------------------------------------------------------------
-# Model factory
+# Model factory (OpenAI preferred, fallback to local Ollama)
 # ---------------------------------------------------------------------
 def build_llm():
     """
@@ -130,10 +148,10 @@ def call_model(state: AgentState, config: Optional[RunnableConfig] = None):
     """
     llm = build_llm().bind_tools(TOOLS)
 
-    # Inject NewsGenie system prompt with the current risk rubric
-    system = SystemMessage(
-        content=AGENT_SYSTEM_PROMPT.format(risk_rubric=stock_risk_hint())
+    system_text = AGENT_SYSTEM_PROMPT.format(
+        stock_risk_hint=stock_risk_hint()
     )
+    system = SystemMessage(content=system_text)
 
     messages = [system] + state["messages"]
     response = llm.invoke(messages, config=config)
@@ -178,7 +196,7 @@ GRAPH = build_graph()
 # ---------------------------------------------------------------------
 def run_agent_turn(
     external_user_id: str,
-    conversation_id: int | None,
+    conversation_id: Optional[int],
     user_text: str,
 ) -> dict:
     """
@@ -206,15 +224,15 @@ def run_agent_turn(
         lc_messages = []
         for m in conv.messages:
             role = m.role
-            payload = m.content  # dict we stored
-            text = payload.get("text")
+            payload = m.content
+            text = payload.get("text") if isinstance(payload, dict) else None
 
             if role == "user":
                 lc_messages.append(HumanMessage(content=text))
             elif role == "assistant":
                 lc_messages.append(AIMessage(content=text))
-            # We skip past tool messages from history; they will be re-created as needed.
             else:
+                # Fallback: store as generic AI message
                 lc_messages.append(AIMessage(content=str(payload)))
 
         state: AgentState = {"messages": lc_messages}
@@ -223,7 +241,7 @@ def run_agent_turn(
         result = GRAPH.invoke(state)
 
         # 4) Persist only the messages produced in this turn (after our prior history)
-        new_messages = result["messages"][len(lc_messages) :]
+        new_messages = result["messages"][len(lc_messages):]
 
         last_assistant_text = None
         for msg in new_messages:
@@ -232,7 +250,10 @@ def run_agent_turn(
                     msg.content if isinstance(msg.content, str) else str(msg.content)
                 )
                 append_message(
-                    s, conv, role="assistant", content={"text": last_assistant_text}
+                    s,
+                    conv,
+                    role="assistant",
+                    content={"text": last_assistant_text},
                 )
             elif isinstance(msg, ToolMessage):
                 append_message(
@@ -245,7 +266,4 @@ def run_agent_turn(
                     },
                 )
 
-        return {
-            "conversation_id": conv.id,
-            "assistant": last_assistant_text or "",
-        }
+        return {"conversation_id": conv.id, "assistant": last_assistant_text or ""}
