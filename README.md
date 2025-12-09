@@ -1,22 +1,21 @@
 
----
-
 ````markdown
 # 🧠 NewsGenie — AI-Powered News, Weather, Stocks & Sports Betting Assistant
 
 NewsGenie is an end-to-end **agentic AI system** built with **LangGraph**, **LangChain**, **FastAPI**, **Streamlit**, **SQLite**, and real-time APIs for:
 
-- 📰 News
-- 🌦️ Weather
-- 📈 Stocks
-- 🔎 Web Search
-- 🏀🏈⚽ **Sports Betting Analysis & Recommendations**
+- 📰 News  
+- 🌦️ Weather  
+- 📈 Stocks  
+- 🔎 Web Search  
+- 🏀🏈⚽ **Sports Betting Analysis & Recommendations**  
 
 It works with both **OpenAI** and **local LLMs via Ollama** and provides:
-- Tool-using AI agents
-- Live data fetching
-- Sports betting recommendations (LOW / MEDIUM / HIGH / NOT RECOMMENDED)
-- Persistent conversation memory
+
+- Tool-using AI agents  
+- Live data fetching  
+- Sports betting recommendations (LOW / MEDIUM / HIGH / NOT RECOMMENDED)  
+- Persistent conversation memory  
 
 ---
 
@@ -29,46 +28,44 @@ It works with both **OpenAI** and **local LLMs via Ollama** and provides:
 - Streamlit
 - SQLite
 - Ollama (local LLM)
-- OpenAI (optional cloud LLM)
-- OpenWeatherMap API
-- AlphaVantage API (stocks)
+- OpenAI (optional)
+- OpenWeatherMap
+- AlphaVantage (stocks)
 - NewsAPI
-- Tavily Search API (web search)
-- The Odds API (sports betting odds)
+- Tavily Search API
+- The Odds API (sports betting)
 - Sportsdata.io (team & player statistics)
 
 ---
-```markdown
+
 ## 🎥 Live Demo (Optional)
 
-![NewsGenie Demo](docs/assets/demo_newsgenie.gif)
-
+![NewsGenie Demo](https://raw.githubusercontent.com/rayme11/langgraph-ollama-agent/main/docs/assets/demo_newsgenie.gif)
 
 ---
 
 ## 🖼 Architecture Diagram (Optional)
 
-![NewsGenie Architecture](docs/assets/newsgenie_architecture.png)
-```
+![NewsGenie Architecture](https://raw.githubusercontent.com/rayme11/langgraph-ollama-agent/main/docs/assets/newsgenie_architecture.png)
 
 ---
 
 # 📘 Table of Contents
 
-1. Overview
-2. Requirements
-3. Installation
-4. Environment Variables
-5. Project Structure
-6. Tools Overview
-7. Sports Betting System
-8. LangGraph Agent Architecture
-9. FastAPI API Usage
-10. Streamlit UI
-11. Sports Betting Examples
-12. Testing & Smoke Tests
-13. Troubleshooting
-14. Disclaimer
+1. Overview  
+2. Requirements  
+3. Installation  
+4. Environment Variables  
+5. Project Structure  
+6. Tools Overview  
+7. Sports Betting System  
+8. LangGraph Agent Architecture  
+9. FastAPI API Usage  
+10. Streamlit UI  
+11. Sports Betting Examples  
+12. Testing & Smoke Tests  
+13. Troubleshooting  
+14. Disclaimer  
 
 ---
 
@@ -76,18 +73,18 @@ It works with both **OpenAI** and **local LLMs via Ollama** and provides:
 
 NewsGenie is a **multi-tool reasoning AI agent** that:
 
-* Detects what the user is asking
-* Calls the correct API automatically
-* Reasons over live data
-* Produces structured explanations
+- Detects what the user is asking
+- Calls the correct API automatically
+- Reasons over live data
+- Produces structured explanations
 
 It supports:
 
-* News summaries
-* Weather lookups
-* Stock quotes and risk classification
-* Web search
-* Sports betting odds + data-driven betting advice
+- News summaries  
+- Weather lookups  
+- Stock quotes and risk classification  
+- Web search  
+- Sports betting odds & recommendations  
 
 ---
 
@@ -95,20 +92,15 @@ It supports:
 
 Install:
 
-* Python 3.9+
-* pip
-* sqlite3
-* **Ollama (local LLM)**
-
 ```bash
 brew install ollama
 ollama pull llama3
 ollama serve
-```
+````
 
 Optional:
 
-* OpenAI API key for cloud inference
+* OpenAI API Key
 
 ---
 
@@ -153,8 +145,8 @@ WEB_SEARCH_API_KEY=
 DATABASE_URL=sqlite:///./app.db
 
 # ---- Sports Betting ----
-ODDS_API_KEY=                    # The Odds API
-SPORTSDATA_API_KEY=              # Sportsdata.io
+ODDS_API_KEY=
+SPORTSDATA_API_KEY=
 
 SPORTSDATA_NBA_BASE_URL=https://api.sportsdata.io/v3/nba
 SPORTSDATA_NFL_BASE_URL=https://api.sportsdata.io/v3/nfl
@@ -171,9 +163,9 @@ SPORTSDATA_SOCCER_BASE_URL=https://api.sportsdata.io/v3/soccer
 ```
 app/
   agent/
-    graph.py              # LangGraph workflow
-    tools.py              # All tools registry
-    sports_tools.py       # Odds + team + player stats
+    graph.py
+    tools.py
+    sports_tools.py
     state.py
   memory/
     db.py
@@ -209,30 +201,24 @@ README.md
 
 # 7. 🏀 Sports Betting System
 
-NewsGenie supports:
+Supports:
 
-✅ Moneyline bets (+150 / -180)
-✅ Point spreads (Team -3.5, +4.5)
-✅ Totals (Over / Under)
-✅ Player props (Over 26.5 points)
-✅ Team & player historical performance
-✅ LOW / MEDIUM / HIGH confidence classification
+* Moneyline (+150 / -180)
+* Point spreads (Team -3.5, +4.5)
+* Totals (Over / Under)
+* Player props
+* Team & player stats (last N days)
+* LOW / MEDIUM / HIGH confidence classification
 
-### How recommendations are calculated:
+Recommendations use:
 
-1. Fetch live odds with **The Odds API**
-2. Fetch team form (last N days) with **Sportsdata.io**
-3. Optional: Fetch player form for props
-4. Compute implied probability
-5. Analyze recent scoring margins, trends, and matchups
-6. Classify confidence level:
+1. Live odds
+2. Team form
+3. Player form
+4. Implied probabilities
+5. Trend analysis
 
-   * HIGH
-   * MEDIUM
-   * LOW
-   * NOT RECOMMENDED
-
-⚠️ Always includes a **risk disclaimer**
+Always includes a **risk disclaimer**.
 
 ---
 
@@ -242,17 +228,17 @@ NewsGenie supports:
 User → AgentNode → ToolNode → AgentNode → Final Answer
 ```
 
-The system automatically:
+Agent automatically:
 
-* Decides which tool to call
-* Handles multiple tool calls per prompt
-* Applies the betting rubric via system prompt
+* Selects the correct tool
+* Handles multi-step tool usage
+* Applies betting rubric
 
 ---
 
 # 9. FastAPI Backend
 
-Start backend:
+Start:
 
 ```bash
 uvicorn app.main:app --reload
@@ -260,7 +246,7 @@ uvicorn app.main:app --reload
 
 ### POST `/api/chat`
 
-Body:
+Request:
 
 ```json
 {
@@ -283,86 +269,69 @@ Response:
 
 # 10. Streamlit UI
 
-Start UI:
+Start:
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-Supports:
+Features:
 
-* Chat interface
-* Persistent history
-* Betting questions
-* News, weather, stocks
+* Full chat interface
+* Persistent memory
+* Supports betting, weather, stocks, news
 
 ---
 
 # 11. Sports Betting Example Prompts
 
-```text
+```
 Is Lakers -3.5 a good bet tonight?
-
-Is Cowboys +4.5 good this week in the NFL?
-
-Is LeBron over 26.5 points a good prop bet?
-
+Is Cowboys +4.5 good this week?
+Is LeBron over 26.5 points a good prop?
 Over 210.5 in Raptors vs Celtics?
-
-Based on the last 5 days, is Inter Miami a good moneyline bet today?
+Based on last 5 days, is Inter Miami a good moneyline bet?
 ```
 
 ---
 
 # 12. Testing & Smoke Tests
 
-### Run unit tests:
+Run full tests:
 
 ```bash
 pytest -q
 ```
 
-### Run sports betting smoke test:
+Run sports smoke test:
 
 ```bash
 python -m scripts.smoke_test_sports
 ```
 
-This validates:
-
-* Odds retrieval
-* Team & player stats
-* End-to-end LangGraph execution
-
 ---
 
 # 13. Troubleshooting
 
-| Issue                      | Fix                        |
-| -------------------------- | -------------------------- |
-| Missing ODDS_API_KEY       | Add it to `.env`           |
-| Missing SPORTSDATA_API_KEY | Add it to `.env`           |
-| Ollama model not found     | `ollama pull llama3`       |
-| No games found             | Try increasing `days_back` |
-| API quota exceeded         | Upgrade API tier           |
+| Issue                      | Fix                  |
+| -------------------------- | -------------------- |
+| Missing ODDS_API_KEY       | Add to `.env`        |
+| Missing SPORTSDATA_API_KEY | Add to `.env`        |
+| Ollama model missing       | `ollama pull llama3` |
+| No games found             | Increase `days_back` |
+| API quota exceeded         | Upgrade plan         |
 
 ---
 
-# 14. ⚠️ Legal & Financial Disclaimer
+# 14. ⚠️ Disclaimer
 
-This project is **for educational and informational purposes only**.
-
-* **No betting advice is guaranteed**
-* **No financial outcome is promised**
-* Sports betting contains significant risk
-* Always bet responsibly
-* The developers are not responsible for financial losses
+This project is for **educational purposes only**.
+No betting advice is guaranteed.
+Always gamble responsibly.
 
 ---
 
-✅ **NewsGenie now supports live sports betting intelligence with full explainability, real-time odds, and statistical reasoning.**
+✅ NewsGenie now supports **live sports betting intelligence**, **news**, **weather**, **stocks**, **search**, and **full agentic workflows**.
 
 ```
-
----
 
