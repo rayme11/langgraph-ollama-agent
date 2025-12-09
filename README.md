@@ -38,18 +38,16 @@ It works with both **OpenAI** and **local LLMs via Ollama** and provides:
 - Sportsdata.io (team & player statistics)
 
 ---
-
+```markdown
 ## 🎥 Live Demo (Optional)
 
-```md
 ![NewsGenie Demo](docs/assets/demo_newsgenie.gif)
-````
+
 
 ---
 
 ## 🖼 Architecture Diagram (Optional)
 
-```md
 ![NewsGenie Architecture](docs/assets/newsgenie_architecture.png)
 ```
 
